@@ -1,4 +1,5 @@
 import type { Logger } from './Logger';
+import { requireAwsXraySdk } from './requireAwsXraySdk';
 import { shouldEnableXray } from './shouldEnableXray';
 import type { XrayMode } from './XrayMode';
 
@@ -7,9 +8,10 @@ import type { XrayMode } from './XrayMode';
  *
  * Guarded behavior:
  * - When capture is not enabled (based on {@link shouldEnableXray}), returns
- *   the original `client` unchanged and does not import `aws-xray-sdk`.
+ *   the original `client` unchanged and does not load `aws-xray-sdk`.
  * - When capture is enabled but `daemonAddress` is missing, throws.
- * - When capture is enabled, dynamically imports `aws-xray-sdk` and uses its
+ * - When capture is enabled, synchronously loads `aws-xray-sdk` via
+ *   `createRequire` (through {@link requireAwsXraySdk}) and uses its
  *   `captureAWSv3Client` helper to instrument the client.
  *
  * @typeParam TClient - AWS SDK v3 client type (any object with methods).
@@ -21,7 +23,7 @@ import type { XrayMode } from './XrayMode';
  * @throws If capture is enabled but `aws-xray-sdk` is not installed.
  * @throws If `aws-xray-sdk` does not expose `captureAWSv3Client`.
  */
-export const captureAwsSdkV3Client = async <TClient extends object>(
+export const captureAwsSdkV3Client = <TClient extends object>(
   client: TClient,
   {
     mode = 'auto',
@@ -32,7 +34,7 @@ export const captureAwsSdkV3Client = async <TClient extends object>(
     logger?: Logger;
     daemonAddress?: string;
   } = {},
-): Promise<TClient> => {
+): TClient => {
   if (!shouldEnableXray(mode, daemonAddress)) return client;
 
   if (!daemonAddress) {
@@ -41,17 +43,16 @@ export const captureAwsSdkV3Client = async <TClient extends object>(
     );
   }
 
-  // Guarded dynamic import: some X-Ray SDK integrations throw when daemon
-  // configuration is missing, so do not import unless we are capturing.
-  let mod: { default?: unknown };
+  // Guarded sync load: do not require aws-xray-sdk unless we are capturing.
+  let mod: unknown;
   try {
-    mod = (await import('aws-xray-sdk')) as unknown as { default?: unknown };
+    mod = requireAwsXraySdk();
   } catch {
     throw new Error(
       "X-Ray capture is enabled but 'aws-xray-sdk' is not installed. Install it or set xray to 'off'.",
     );
   }
-  const AWSXRay = (mod.default ?? mod) as unknown as {
+  const AWSXRay = ((mod as { default?: unknown }).default ?? mod) as {
     captureAWSv3Client?: <U extends object>(c: U) => U;
   };
 

@@ -35,7 +35,7 @@ import { captureAwsSdkV3Client } from '@karmaniverous/aws-xray-tools';
 const base = new SecretsManagerClient({ region: 'us-east-1' });
 
 // Guarded: does nothing unless capture is enabled and daemon is configured.
-const client = await captureAwsSdkV3Client(base, {
+const client = captureAwsSdkV3Client(base, {
   mode: 'auto',
   daemonAddress: process.env.AWS_XRAY_DAEMON_ADDRESS,
   logger: console,
@@ -50,7 +50,7 @@ const client = await captureAwsSdkV3Client(base, {
 
 ## aws-xray-sdk (optional peer dependency)
 
-This package uses a **dynamic import** of `aws-xray-sdk` and only imports it when capture is enabled.
+This package loads `aws-xray-sdk` only when capture is enabled.
 
 To enable capture in your app/package, install the optional peer dependency:
 

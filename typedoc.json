@@ -1,5 +1,8 @@
 {
   "entryPoints": ["./src/index.ts"],
+  "externalSymbolLinkMappings": {
+    "@karmaniverous/aws-xray-tools": { "requireAwsXraySdk": "#" }
+  },
   "highlightLanguages": [
     "bash",
     "console",
