@@ -2,10 +2,12 @@
 
 ## Next up
 
-- Run `npm run test` to confirm the Vitest mocking fix resolves failures.
-- Run `npm run docs -- --emit none` to confirm TypeDoc has no warnings.
-- Run `npm run build` to confirm packaging still succeeds.
+- Verify downstream consumption from an `aws-*-tools` repo (no `aws-xray-sdk` installed by default).
+- Decide first release version and publish (likely `0.0.1`).
+- Consider adding CI workflow to run lint/test/typecheck/build/docs/knip on push.
 
 ## Completed (recent)
 
-- Refactored requirements/docs for aws-xray-tools and added unit tests for X-Ray capture helpers.- Fixed Vitest ESM mocks for aws-xray-sdk and added TSDoc for exported API.
+- Refactored requirements/docs for aws-xray-tools and added unit tests for X-Ray capture helpers.
+- Fixed Vitest ESM mocks for aws-xray-sdk and added TSDoc for exported API.
+- Verified typecheck/lint/test/docs/build/knip are clean.
