@@ -2,6 +2,25 @@ import type { Logger } from './Logger';
 import { shouldEnableXray } from './shouldEnableXray';
 import type { XrayMode } from './XrayMode';
 
+/**
+ * Capture (instrument) an AWS SDK v3 client with AWS X-Ray when enabled.
+ *
+ * Guarded behavior:
+ * - When capture is not enabled (based on {@link shouldEnableXray}), returns
+ *   the original `client` unchanged and does not import `aws-xray-sdk`.
+ * - When capture is enabled but `daemonAddress` is missing, throws.
+ * - When capture is enabled, dynamically imports `aws-xray-sdk` and uses its
+ *   `captureAWSv3Client` helper to instrument the client.
+ *
+ * @typeParam TClient - AWS SDK v3 client type (any object with methods).
+ * @param client - The AWS SDK v3 client instance to capture.
+ * @param opts - Capture options.
+ * @returns The captured client (or the original client when capture is disabled).
+ *
+ * @throws If capture is enabled but `AWS_XRAY_DAEMON_ADDRESS` is not set.
+ * @throws If capture is enabled but `aws-xray-sdk` is not installed.
+ * @throws If `aws-xray-sdk` does not expose `captureAWSv3Client`.
+ */
 export const captureAwsSdkV3Client = async <TClient extends object>(
   client: TClient,
   {

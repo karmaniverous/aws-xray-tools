@@ -56,7 +56,7 @@ describe('captureAwsSdkV3Client', () => {
 
   it('throws when aws-xray-sdk lacks captureAWSv3Client', async () => {
     vi.resetModules();
-    vi.doMock('aws-xray-sdk', () => ({}));
+    vi.doMock('aws-xray-sdk', () => ({ default: {} }));
 
     const { captureAwsSdkV3Client } = await import('./captureAwsSdkV3Client');
 
@@ -71,7 +71,7 @@ describe('captureAwsSdkV3Client', () => {
   it('captures client when aws-xray-sdk exposes captureAWSv3Client', async () => {
     vi.resetModules();
     const captureAWSv3Client = vi.fn(<T extends object>(c: T) => c);
-    vi.doMock('aws-xray-sdk', () => ({ captureAWSv3Client }));
+    vi.doMock('aws-xray-sdk', () => ({ default: { captureAWSv3Client } }));
 
     const { captureAwsSdkV3Client } = await import('./captureAwsSdkV3Client');
 
