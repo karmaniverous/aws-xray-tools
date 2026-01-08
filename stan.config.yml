@@ -30,7 +30,7 @@ stan-cli:
       script: npm run docs -- --emit none
       warnPattern: \\[warning\\]
     build:
-      script: npm run build
+      script: npx dotenvx run -e NO_COLOR=1 --ignore MISSING_ENV_FILE -- npm run build
       warnPattern: \(!\)
     knip:
       script: npm run knip

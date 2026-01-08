@@ -4,221 +4,147 @@ title: STAN assistant guide (aws-xray-tools)
 
 # STAN assistant guide: @karmaniverous/aws-xray-tools
 
-This guide is a compact, implementation-synced reference for STAN assistants integrating this package (library + get-dotenv plugin + shipped CLI).
+This guide is a compact, implementation-synced reference for STAN assistants integrating this package.
 
 ## What this package provides
 
-- Programmatic wrapper:
-  - `AwsSecretsManagerTools` (async factory via `AwsSecretsManagerTools.init(...)`)
-- get-dotenv plugin (mounted under `aws`):
-  - `secretsPlugin()` → `aws secrets pull|push|delete`
-- Shipped CLI (get-dotenv host embedding the plugin):
-  - `aws-xray-tools`
+This package provides a small set of **guarded AWS X-Ray capture utilities** intended to be shared by `aws-*-tools` packages:
+
+- `captureAwsSdkV3Client(...)`: guarded dynamic import + capture for AWS SDK v3 clients
+- `shouldEnableXray(...)`: pure decision helper for `auto|on|off`
+- Public types for consistent interop:
+  - `Logger`, `XrayMode`, `XrayState`
+
+This package does **not** provide an AWS service wrapper, a get-dotenv plugin, or a CLI.
 
 ## Public API (imports)
 
 ```ts
 import {
-  AwsSecretsManagerTools,
-  secretsPlugin,
-  type ProcessEnv,
+  captureAwsSdkV3Client,
+  shouldEnableXray,
+  type Logger,
+  type XrayMode,
+  type XrayState,
 } from '@karmaniverous/aws-xray-tools';
 ```
 
-## Core data model: “env-map” secrets
+## Mental model: guarded capture
 
-This package treats the AWS Secrets Manager secret value as a JSON object map stored in `SecretString`:
+AWS X-Ray capture is optional and must be guarded:
 
-```json
-{ "KEY": "value", "OPTIONAL": null }
-```
+- Default behavior should be `mode: 'auto'`: capture only when `AWS_XRAY_DAEMON_ADDRESS` is set.
+- Avoid importing `aws-xray-sdk` unless capture is enabled (some X-Ray integrations throw when daemon config is missing).
+- Fail fast with clear errors when capture is requested but prerequisites are missing.
 
-Rules:
-
-- Values must be `string` or `null`.
-- When decoding, `null` is treated as `undefined` (because JSON can’t represent `undefined`).
-- Binary secrets (`SecretBinary`) are not supported by the wrapper.
-
-The canonical type is:
+## `XrayMode`
 
 ```ts
-export type ProcessEnv = ProcessEnv;
+export type XrayMode = 'auto' | 'on' | 'off';
 ```
 
-## Programmatic API: AwsSecretsManagerTools
+Semantics:
 
-Use this when you want to read/write env-map secrets in application code.
+- `'off'`: never capture.
+- `'auto'`: capture only when a daemon address is present.
+- `'on'`: force capture (requires daemon address).
 
-The tools wrapper assumes Secrets Manager secrets are stored as a JSON object map of env vars.
+## `shouldEnableXray(mode, daemonAddress)`
 
-Initialize tools (recommended):
+Pure helper for “mode + daemon config → enabled?”:
+
+- `'off'` → `false`
+- `'on'` → `true`
+- `'auto'` → `Boolean(daemonAddress)`
+
+Usage pattern:
 
 ```ts
-import { AwsSecretsManagerTools } from '@karmaniverous/aws-xray-tools';
+const daemonAddress = process.env.AWS_XRAY_DAEMON_ADDRESS;
+const enabled = shouldEnableXray('auto', daemonAddress);
+```
 
-const tools = await AwsSecretsManagerTools.init({
-  clientConfig: { region: 'us-east-1', logger: console },
-  xray: 'auto',
+## `captureAwsSdkV3Client(client, opts?)`
+
+Capture an AWS SDK v3 client when enabled:
+
+- If capture is not enabled, returns `client` unchanged (no import attempt).
+- If capture is enabled but daemon address is missing, throws:
+  - `"X-Ray capture requested but AWS_XRAY_DAEMON_ADDRESS is not set."`
+- If capture is enabled but `aws-xray-sdk` cannot be imported, throws:
+  - `"X-Ray capture is enabled but 'aws-xray-sdk' is not installed. Install it or set xray to 'off'."`
+- If `aws-xray-sdk` is present but does not expose `captureAWSv3Client`, throws:
+  - `"aws-xray-sdk missing captureAWSv3Client export."`
+
+Minimal usage:
+
+```ts
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { captureAwsSdkV3Client } from '@karmaniverous/aws-xray-tools';
+
+const base = new SecretsManagerClient({ region: 'us-east-1', logger: console });
+
+const captured = await captureAwsSdkV3Client(base, {
+  mode: 'auto',
+  daemonAddress: process.env.AWS_XRAY_DAEMON_ADDRESS,
+  logger: console,
 });
 ```
 
-### Init behavior (important constraints)
+## `Logger` contract
 
-- `clientConfig` is an AWS SDK v3 `SecretsManagerClientConfig`.
-  - If `clientConfig.logger` is provided, it must implement the unified get-dotenv `Logger` contract: `debug`, `info`, `warn`, and `error` (validated up front; no polyfills).
-- X-Ray capture is optional and guarded:
-  - Default is `xray: 'auto'`: enabled only when `AWS_XRAY_DAEMON_ADDRESS` is set.
-  - If capture is enabled but `aws-xray-sdk` is not installed, initialization throws with a clear error message.
+This package expects a console-like logger compatible with AWS SDK v3 client config expectations:
 
-### Escape hatch: use the raw AWS SDK client
-
-Import AWS SDK command classes as needed for advanced operations:
+- `debug`, `info`, `warn`, `error`
 
 ```ts
-import { ListSecretsCommand } from '@aws-sdk/client-secrets-manager';
-
-const res = await tools.client.send(new ListSecretsCommand({}));
+export type Logger = Pick<Console, 'debug' | 'info' | 'warn' | 'error'>;
 ```
 
-Convenience methods (env-map secrets):
+Notes:
 
-- `readEnvSecret({ secretId, versionId? }) -> ProcessEnv`
-- `updateEnvSecret({ secretId, value, versionId? }) -> Promise<void>` (update-only; does not create)
-- `createEnvSecret({ secretId, value, description?, forceOverwriteReplicaSecret?, versionId? }) -> Promise<void>`
-- `upsertEnvSecret({ secretId, value }) -> Promise<'updated' | 'created'>` (creates only on `ResourceNotFoundException`)
-- `deleteSecret({ secretId, recoveryWindowInDays?, forceDeleteWithoutRecovery? }) -> Promise<void>`
+- Additional methods (like `log`) are allowed but not required.
+- This package does not validate logger shape; downstream wrappers may validate if needed.
 
-For complete usage examples, see the [AwsSecretsManagerTools guide](./aws-xray-tools.md).
+## `XrayState` (recommended wrapper DX)
 
-## CLI and get-dotenv plugin: aws secrets
-
-### Shipped CLI
-
-The shipped CLI is a get-dotenv CLI host with the secrets plugin mounted under `aws`:
-
-```bash
-aws-xray-tools --env dev aws secrets pull --secret-name '$STACK_NAME'
-aws-xray-tools --env dev aws secrets push --secret-name '$STACK_NAME'
-aws-xray-tools --env dev aws secrets delete --secret-name '$STACK_NAME'
-```
-
-Key behaviors:
-
-- `--env` is a root-level get-dotenv option and must appear before the command path.
-- `--secret-name` supports `$VAR` expansion evaluated at action time against `{ ...process.env, ...ctx.dotenv }` (`ctx.dotenv` wins).
-
-### Embedding the plugin in another host
-
-Mount it under `aws` (the parent aws plugin is responsible for AWS auth/session and publishes region metadata):
+`XrayState` is a small diagnostic payload you can store on your wrappers for “what happened?” visibility:
 
 ```ts
-import { createCli } from '@karmaniverous/get-dotenv/cli';
-import { awsPlugin } from '@karmaniverous/get-dotenv/plugins';
-
-import { secretsPlugin } from '@karmaniverous/aws-xray-tools';
-
-await createCli({
-  alias: 'toolbox',
-  compose: (program) => program.use(awsPlugin().use(secretsPlugin())),
-})();
+export type XrayState = {
+  mode: XrayMode;
+  enabled: boolean;
+  daemonAddress?: string;
+};
 ```
 
-### Region sourcing
+Typical wrapper pattern:
 
-The secrets plugin reads region from the aws plugin’s published ctx state (when present):
+```ts
+const daemonAddress = process.env.AWS_XRAY_DAEMON_ADDRESS;
+const enabled = shouldEnableXray(mode, daemonAddress);
 
-- `ctx.plugins.aws.region`
+const client = enabled
+  ? await captureAwsSdkV3Client(base, { mode, daemonAddress, logger })
+  : base;
 
-### Plugin config (getdotenv.config.\*)
-
-Safe defaults can be provided under the realized mount path key:
-
-- `plugins['aws/secrets']`
-
-Supported config keys (schema-validated; unknown keys stripped):
-
-- `secretName?: string` (supports `$VAR` expansion at action time for CLI flags; config interpolation is handled by get-dotenv before runtime)
-- `templateExtension?: string`
-- `push?: { from?: string[]; include?: string[]; exclude?: string[] }`
-- `pull?: { to?: string; include?: string[]; exclude?: string[] }`
-
-Safety constraint (intentional):
-
-- There is no config default for “force delete”; `--force` must be explicit at runtime.
-
-Example:
-
-```jsonc
-{
-  "plugins": {
-    "aws/secrets": {
-      "secretName": "$STACK_NAME",
-      "templateExtension": "template",
-      "push": { "from": ["file:env:private"] },
-      "pull": { "to": "env:private" },
-    },
-  },
-}
+const xray: XrayState = {
+  mode,
+  enabled,
+  ...(enabled && daemonAddress ? { daemonAddress } : {}),
+};
 ```
 
-## Command semantics (implementation-synced)
+## Optional peer dependency: `aws-xray-sdk`
 
-### Shared: secret name expansion
+This package dynamically imports `aws-xray-sdk` when capture is enabled.
 
-- `--secret-name` is expanded using `{ ...process.env, ...ctx.dotenv }` (`ctx.dotenv` wins).
-- If the expanded result is empty, the command errors.
+Implications:
 
-### `aws secrets pull`
-
-- Reads the secret (env-map JSON) and applies it as a partial update to a single dotenv file selected by `--to`.
-- `--to <scope:privacy>` (default: `env:private`):
-  - `env:private` → `.env.<env>.<privateToken>`
-  - `env:public` → `.env.<env>`
-  - `global:private` → `.env.<privateToken>`
-  - `global:public` → `.env`
-- If `--to env:*` is selected, `--env` (or `defaultEnv`) must be resolvable.
-- Template bootstrap: if the target is missing but `<target>.<templateExtension>` exists, the template is copied first and then edited in place (format-preserving).
-- Optional key filtering:
-  - `--include` / `--exclude` are mutually exclusive.
-
-### `aws secrets push`
-
-Push selects payload keys using get-dotenv provenance:
-
-- Source of truth is `ctx.dotenv`.
-- Selection is based on `ctx.dotenvProvenance` and matches only the effective provenance entry (the last entry per key).
-- Keys are considered only when:
-  - the key exists in provenance (keys lacking provenance are excluded), and
-  - the current value is not `undefined`, and
-  - the effective provenance entry is not `op: 'unset'`.
-
-Selector option:
-
-- `--from <selector>` is repeatable.
-- Default selection when `--from` is omitted: `file:env:private`.
-
-Selector grammar:
-
-- `file:<scope>:<privacy>` where `<scope>` is `global|env|*` and `<privacy>` is `public|private|*`
-- `config:<configScope>:<scope>:<privacy>` where `<configScope>` is `packaged|project|*`
-- `dynamic:<dynamicSource>` where `<dynamicSource>` is `config|programmatic|dynamicPath|*`
-- `vars`
-
-After provenance selection:
-
-- Apply `--include` / `--exclude` as a final narrowing step (mutually exclusive; unknown keys ignored).
-- Enforce Secrets Manager `SecretString` size limit: after JSON serialization, UTF-8 byte length must be ≤ 65,536 bytes (otherwise the command errors and suggests narrowing selection).
-
-### `aws secrets delete`
-
-- Recoverable deletion is the default behavior (AWS default recovery window).
-- `--force` performs delete-without-recovery (dangerous).
-- `--recovery-window-days <number>` sets an explicit recovery window.
-- `--force` conflicts with `--recovery-window-days`.
+- `aws-xray-sdk` should be treated as an optional peer dependency by consumers.
+- If your app/package enables capture at runtime, you must install `aws-xray-sdk`.
+- If your app/package never enables capture (e.g. always `mode: 'off'`), you do not need `aws-xray-sdk`.
 
 ## Related docs
 
-- Package overview and quick starts: see the [README](../README.md).
-- Full programmatic reference: see the [AwsSecretsManagerTools guide](./aws-xray-tools.md).
-- Full CLI/plugin reference: see the [aws secrets plugin guide](./secrets-plugin.md).
-- End-to-end AWS smoke tests: see the [smoke test guide](../smoke/README.md).
+- Package overview and quick start: see the [README](../README.md).
