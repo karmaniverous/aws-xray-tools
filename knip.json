@@ -1,0 +1,12 @@
+{
+  "entry": ["src/**/index.ts"],
+  "project": ["*/**", "!docs/**"],
+  "ignoreDependencies": ["aws-xray-sdk", "release-it"],
+  "rules": {
+    "exports": "off",
+    "types": "off"
+  },
+  "vitest": {
+    "entry": ["*/**/*.test.!(*.*)"]
+  }
+}

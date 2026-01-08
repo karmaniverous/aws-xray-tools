@@ -1,0 +1,37 @@
+stan-core:
+  stanPath: .stan
+  excludes:
+    - docs
+    - package-lock.json
+  imports:
+    '@commander-js/extra-typings':
+      - node_modules/@commander-js/extra-typings/index.d.ts
+    '@karmaniverous/get-dotenv':
+      - ./node_modules/@karmaniverous/get-dotenv/dist/cliHost.d.ts
+      - ./node_modules/@karmaniverous/get-dotenv/dist/env-overlay.d.ts
+      - ./node_modules/@karmaniverous/get-dotenv/dist/index.d.ts
+      - ../get-dotenv/.stan/interop/aws-xray-tools/**
+      - ../get-dotenv/guides/stan-assistant-guide/**
+  includes: []
+stan-cli:
+  cliDefaults:
+    run:
+      facets: false
+      plan: false
+      sequential: true
+  patchOpenCommand: code -g {file}
+  scripts:
+    typecheck: npm run typecheck -- --noErrorTruncation
+    lint:
+      script: npm run lint:fix
+      warnPattern: \\d+:\\d+\\s+warning
+    test: npm run test -- --no-color
+    docs:
+      script: npm run docs -- --emit none
+      warnPattern: \\[warning\\]
+    build:
+      script: npm run build
+      warnPattern: \(!\)
+    knip:
+      script: npm run knip
+      warnPattern: hints
