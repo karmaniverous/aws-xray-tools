@@ -43,7 +43,7 @@
     "typedoc": "^0.28.20",
     "typedoc-plugin-mdn-links": "^5.1.1",
     "typedoc-plugin-replace-text": "^4.2.0",
-    "typescript": "^6.0.3",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
   },
