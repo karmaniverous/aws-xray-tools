@@ -1,7 +1,6 @@
 {
   "entry": ["src/**/index.ts"],
   "project": ["*/**", "!docs/**"],
-  "ignoreDependencies": ["aws-xray-sdk"],
   "rules": {
     "exports": "off",
     "types": "off"

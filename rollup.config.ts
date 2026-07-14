@@ -94,7 +94,7 @@ const commonInputOptions: InputOptions = {
  * Keep this synchronous so the Rollup CLI can load this TS config
  * deterministically (we run Rollup under `tsx` in npm scripts).
  */
-let cliCommands: string[] = [];
+let cliCommands: string[];
 try {
   cliCommands = fs.readdirSync('src/cli');
 } catch {
