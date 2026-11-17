@@ -136,7 +136,8 @@
   "version": "0.2.2",
   "allowScripts": {
     "esbuild": true,
-    "lefthook": true
+    "lefthook": true,
+    "fsevents": true
   },
   "overrides": {
     "proxy-agent": "8.0.3"
