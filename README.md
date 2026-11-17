@@ -12,7 +12,7 @@ This package is intended to be imported by other `aws-*-tools` packages so they 
 npm i @karmaniverous/aws-xray-tools
 ```
 
-This package is ESM-only (Node >= 20).
+This package is ESM-only (Node >= 22.22.2).
 
 ## Public API
 
