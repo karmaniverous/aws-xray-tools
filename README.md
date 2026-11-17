@@ -62,7 +62,6 @@ If capture is enabled but `aws-xray-sdk` is not installed, `captureAwsSdkV3Clien
 
 ## Documentation
 
-- STAN assistant guide: [`guides/stan-assistant-guide.md`](./guides/stan-assistant-guide.md)
 - Generated API reference: https://docs.karmanivero.us/aws-xray-tools
 
 ---

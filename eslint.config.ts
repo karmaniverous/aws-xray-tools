@@ -38,7 +38,6 @@ export default [
   {
     ignores: [
       '.rollup.cache/**/*',
-      '.stan/**/*',
       'coverage/**/*',
       'diagrams/out/**/*',
       'dist/**/*',
