@@ -21,7 +21,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.0",
-    "@vitest/eslint-plugin": "1.6.28",
+    "@vitest/eslint-plugin": "^1.6.28",
     "auto-changelog": "^2.7.0",
     "aws-xray-sdk": "^3.12.0",
     "eslint": "^10.15.0",
@@ -48,7 +48,7 @@
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": ">=22.22.2"
+    "node": ">=20"
   },
   "exports": {
     ".": {
