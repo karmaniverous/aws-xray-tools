@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [0.2.2](https://github.com/karmaniverous/aws-xray-tools/compare/0.2.1...0.2.2)
+
+- chore: update development dependencies [`#6`](https://github.com/karmaniverous/aws-xray-tools/pull/6)
+- removed stan [`2c6cd74`](https://github.com/karmaniverous/aws-xray-tools/commit/2c6cd740385f38ff3b746834b15ec7cc46319d03)
+- ci: verify supported Node versions [`8ebef0c`](https://github.com/karmaniverous/aws-xray-tools/commit/8ebef0cc0a143d527e27a8b9e9cfa98c1ec1175b)
+- fix: address dependency review findings [`23de927`](https://github.com/karmaniverous/aws-xray-tools/commit/23de927dfbae8b0dbf2ad1c64fee8baab09c075f)
+- npm audit fix [`28b6f1e`](https://github.com/karmaniverous/aws-xray-tools/commit/28b6f1ef25a9dd78cb77423a92db267bd792bbba)
+
 #### [0.2.1](https://github.com/karmaniverous/aws-xray-tools/compare/0.2.0...0.2.1)
+
+> 15 July 2026
 
 - chore: update dependencies [`#4`](https://github.com/karmaniverous/aws-xray-tools/pull/4)
 - chore: move changelog generation to after:bump hook [`#2`](https://github.com/karmaniverous/aws-xray-tools/pull/2)
@@ -10,6 +20,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - fix: pin typescript to 5.x for eslint-plugin-tsdoc peer dep compat [`038ff07`](https://github.com/karmaniverous/aws-xray-tools/commit/038ff07e331f534f22870ce261d0ef7b9ff5a892)
 - removed docs [`0c40bc7`](https://github.com/karmaniverous/aws-xray-tools/commit/0c40bc71aef3ffdf4b4e642058bebfc6ec34bf11)
 - chore: add copilot review instructions [`8c8bb61`](https://github.com/karmaniverous/aws-xray-tools/commit/8c8bb61cebde83d6d3a8c042c237d638009ac6ba)
+- chore: release v0.2.1 [`f0e297c`](https://github.com/karmaniverous/aws-xray-tools/commit/f0e297cb3bc329b0e183d0edb2535ecc1473fed7)
 - chore: add npm publish safety net (.npmignore + gitignore *.local) [`559a561`](https://github.com/karmaniverous/aws-xray-tools/commit/559a5618c57cce0ebcb7622a4970481a5197887f)
 
 #### [0.2.0](https://github.com/karmaniverous/aws-xray-tools/compare/0.1.0...0.2.0)
